@@ -210,7 +210,8 @@ def better_motd(word):
         word = " " * 16 + word + " " * 16
         for i in range(len(word) - 15):
             if GPIO.input(touch):
-                print("Touched!")
+                lcd.clear()
+                lcd.message("Please wait...")
                 break
             else:
                 lcd.set_cursor(0, 0)
