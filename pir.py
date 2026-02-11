@@ -2,9 +2,32 @@ import RPi.GPIO as GPIO
 import time
 import Adafruit_CharLCD as LCD
 import sys
+import os
 import logging
+import configparser
 import motd
 import apis
+
+defaults = {
+        "news": "true",
+        "date": "true",
+        "show_version": "true",
+        "silent": "false"
+        }
+
+conf_file = "config.ini"
+config = configparser.ConfigParser()
+if not os.path.exists(conf_file):
+    config["General"] = defaults
+    with open(conf_file, "w") as f:
+        config.write(f)
+        
+config.read(conf_file)
+
+news = config.getboolean("General", "news")
+date = config.getboolean("General", "date")
+version = config.getboolean("General", "show_version")
+silent = config.getboolean("General", "silent")
 
 logging.basicConfig(
     filename="alarm.log",
@@ -31,10 +54,10 @@ def ir_sense():
             if GPIO.input(pin):
                 lcd.clear()
                 lcd.set_backlight(0)
-                lcd.message("Detected!")
+                lcd.message("Detected!") # Show message on the lcd and log it
                 logging.info("Detected movement")
-               
-                GPIO.output(buzzer, GPIO.HIGH) # Draw text on the lcd and enable the buzzer
+                if silent == False:
+                    GPIO.output(buzzer, GPIO.HIGH) # enable the buzzer if we're not silent
                 time.sleep(5) # 5 seems good enough for the pir sensor to not detect movement twice in quick succession 
                 lcd.clear()
                 lcd.set_backlight(1) # Clear and turn off the backlight when the alarm is over
@@ -52,6 +75,7 @@ def ir_sense():
         rearm() # If the built in touch input doesn't break it at least we get back somehow
 
 def rearm():
+    GPIO.output(buzzer, GPIO.LOW)
     lcd.set_backlight(0)
     lcd.message("Hold to Arm") # Display rearm message on the built in lcd 
     time.sleep(2) # Somehow crucial i have no idea why
@@ -65,14 +89,20 @@ def rearm():
             lcd.set_backlight(1)
             ir_sense()
         else:
-            motd.better_motd(time.strftime("%a %d.%m.%Y, %H:%M %Z"))
-            motd.better_motd("Suzuka alarm node version 1.5")
-            motd.better_motd(apis.news())
-            motd.better_motd("Hold to arm...")
+            if date:
+                motd.better_motd(time.strftime("%a %d.%m.%Y, %H:%M %Z"))
+            if version:
+                motd.better_motd("Suzuka alarm node v1.3.1")
+            if news:
+                motd.better_motd(apis.news())
+            motd.better_motd("Hold touch to arm...")
             continue # If there's no touch we just wait
 
 
 if __name__ == "__main__":
-    motd.splash()
+    try:
+        motd.splash()
     #ir_sense() # Begin with the alarm already armed
-    rearm()
+        rearm()
+    except OSError:
+        print("OSError: Is the switch is position A?")
