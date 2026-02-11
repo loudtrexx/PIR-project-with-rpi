@@ -92,7 +92,7 @@ def rearm():
             if date:
                 motd.better_motd(time.strftime("%a %d.%m.%Y, %H:%M %Z"))
             if version:
-                motd.better_motd("Suzuka alarm node v1.3.1")
+                motd.better_motd("Suzuka alarm node Testing v1.3.1 RC-1")
             if news:
                 motd.better_motd(apis.news())
             motd.better_motd("Hold touch to arm...")
