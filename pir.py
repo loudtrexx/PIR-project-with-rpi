@@ -8,7 +8,7 @@ import configparser
 import motd
 import apis
 
-defaults = {
+defaults = { # Define default values for when the config file does not exist
         "news": "true",
         "date": "true",
         "show_version": "true",
@@ -17,28 +17,33 @@ defaults = {
 
 conf_file = "config.ini"
 config = configparser.ConfigParser()
-if not os.path.exists(conf_file):
+if not os.path.exists(conf_file): # If the config does not exist, create one!
     config["General"] = defaults
     with open(conf_file, "w") as f:
         config.write(f)
         
 config.read(conf_file)
 
-news = config.getboolean("General", "news")
-date = config.getboolean("General", "date")
-version = config.getboolean("General", "show_version")
-silent = config.getboolean("General", "silent")
+try:
+        news = config.getboolean("General", "news")
+        date = config.getboolean("General", "date")
+        version = config.getboolean("General", "show_version")
+        silent = config.getboolean("General", "silent")
+except Exception: # Exception is a general term. I fogor what i wrote in the original non-commit lol but rewrite the values in case one of them is invalid
+        config["General"] = defaults
+        with open(conf_file, "w") as f:
+                config.write(f)
 
-logging.basicConfig(
+logging.basicConfig( # Define the logging where the info about the alarms go
     filename="alarm.log",
     filemode="a",
     format="%(asctime)s - %(message)s",
     level=logging.INFO
     )
-
+# Replace the pin numbers with the physical wirings if necessary
 pin = 23
 buzzer = 27
-touch = 17
+touch = 17 # Can be replaced with an actual button, i used a touch sensor
 lcd = LCD.Adafruit_CharLCDBackpack(address=0x21)
 
 GPIO.setmode(GPIO.BCM) # Use BCM layout
@@ -75,7 +80,7 @@ def ir_sense():
         rearm() # If the built in touch input doesn't break it at least we get back somehow
 
 def rearm():
-    GPIO.output(buzzer, GPIO.LOW)
+    GPIO.output(buzzer, GPIO.LOW) # Turn the buzzer off in case it is not
     lcd.set_backlight(0)
     lcd.message("Hold to Arm") # Display rearm message on the built in lcd 
     time.sleep(2) # Somehow crucial i have no idea why
@@ -92,7 +97,7 @@ def rearm():
             if date:
                 motd.better_motd(time.strftime("%a %d.%m.%Y, %H:%M %Z"))
             if version:
-                motd.better_motd("Suzuka alarm node Testing v1.3.1 RC-1")
+                motd.better_motd("Suzuka alarm node v1.0")
             if news:
                 motd.better_motd(apis.news())
             motd.better_motd("Hold touch to arm...")
@@ -102,7 +107,6 @@ def rearm():
 if __name__ == "__main__":
     try:
         motd.splash()
-    #ir_sense() # Begin with the alarm already armed
         rearm()
     except OSError:
         print("OSError: Is the switch is position A?")
