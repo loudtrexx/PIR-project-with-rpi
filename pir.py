@@ -8,43 +8,48 @@ import configparser
 import motd
 import apis
 
-defaults = { # Define default values for when the config file does not exist
-        "news": "true",
+defaults = { # Default choices (Recommended)
+        "news": "false",
         "date": "true",
-        "show_version": "true",
+        "show_version": "false",
         "silent": "false"
         }
 
 conf_file = "config.ini"
 config = configparser.ConfigParser()
-if not os.path.exists(conf_file): # If the config does not exist, create one!
+
+if not os.path.exists(conf_file): # If the config file is  not there we make it
     config["General"] = defaults
     with open(conf_file, "w") as f:
         config.write(f)
         
 config.read(conf_file)
 
-try:
-        news = config.getboolean("General", "news")
-        date = config.getboolean("General", "date")
-        version = config.getboolean("General", "show_version")
-        silent = config.getboolean("General", "silent")
-except Exception: # Exception is a general term. I fogor what i wrote in the original non-commit lol but rewrite the values in case one of them is invalid
-        config["General"] = defaults
-        with open(conf_file, "w") as f:
-                config.write(f)
+try: # Try to define the booleans to the variables
+    news = config.getboolean("General", "news")
+    date = config.getboolean("General", "date")
+    version = config.getboolean("General", "show_version")
+    silent = config.getboolean("General", "silent")
+except ValueError: # If it fails we just reset the settings
+    config["General"] = defaults
+    with open(conf_file, "w") as f:
+        config.write(f)
+    news = config.getboolean("General", "news")
+    date = config.getboolean("General", "date")
+    version = config.getboolean("General", "show_version")
+    silent = config.getboolean("General", "silent")
 
-logging.basicConfig( # Define the logging where the info about the alarms go
+logging.basicConfig( # Define the log and message format
     filename="alarm.log",
     filemode="a",
     format="%(asctime)s - %(message)s",
     level=logging.INFO
     )
-# Replace the pin numbers with the physical wirings if necessary
-pin = 23
-buzzer = 27
-touch = 17 # Can be replaced with an actual button, i used a touch sensor
-lcd = LCD.Adafruit_CharLCDBackpack(address=0x21)
+
+pin = 23 # PIR
+buzzer = 27 # Vibration
+touch = 17 # Touch sensor
+lcd = LCD.Adafruit_CharLCDBackpack(address=0x21) # Define the on board lcd
 
 GPIO.setmode(GPIO.BCM) # Use BCM layout
 GPIO.setup(pin, GPIO.IN)
@@ -52,7 +57,7 @@ GPIO.setup(touch, GPIO.IN)
 GPIO.setup(buzzer, GPIO.OUT)
 
 def ir_sense():
-    time.sleep(2)
+    time.sleep(2) # Quick init break
     status = True
     try:
         while status:
@@ -80,7 +85,7 @@ def ir_sense():
         rearm() # If the built in touch input doesn't break it at least we get back somehow
 
 def rearm():
-    GPIO.output(buzzer, GPIO.LOW) # Turn the buzzer off in case it is not
+    GPIO.output(buzzer, GPIO.LOW) # Turn off the buzzer in case when disarming it gets left on
     lcd.set_backlight(0)
     lcd.message("Hold to Arm") # Display rearm message on the built in lcd 
     time.sleep(2) # Somehow crucial i have no idea why
@@ -94,11 +99,11 @@ def rearm():
             lcd.set_backlight(1)
             ir_sense()
         else:
-            if date:
+            if date: # Take date from the device in the specified format
                 motd.better_motd(time.strftime("%a %d.%m.%Y, %H:%M %Z"))
-            if version:
-                motd.better_motd("Suzuka alarm node v1.0")
-            if news:
+            if version: # Show version of the software
+                motd.better_motd("Suzuka alarm node v1.0 RC v1.3.2")
+            if news: # Display google news feed
                 motd.better_motd(apis.news())
             motd.better_motd("Hold touch to arm...")
             continue # If there's no touch we just wait
@@ -107,6 +112,7 @@ def rearm():
 if __name__ == "__main__":
     try:
         motd.splash()
+    #ir_sense() # [DEBUG] Begin with the alarm already armed
         rearm()
     except OSError:
         print("OSError: Is the switch is position A?")
