@@ -112,7 +112,6 @@ def rearm():
 if __name__ == "__main__":
     try:
         motd.splash()
-    #ir_sense() # [DEBUG] Begin with the alarm already armed
         rearm()
     except OSError:
         print("OSError: Is the switch is position A?")
