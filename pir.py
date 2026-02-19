@@ -43,6 +43,7 @@ logging.basicConfig( # Define the log and message format
     filename="alarm.log",
     filemode="a",
     format="%(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO
     )
 
@@ -112,6 +113,7 @@ def rearm():
 if __name__ == "__main__":
     try:
         motd.splash()
+    #ir_sense() # [DEBUG] Begin with the alarm already armed
         rearm()
     except OSError:
         print("OSError: Is the switch is position A?")
